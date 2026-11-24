@@ -26,10 +26,12 @@ import {
   type Interacao,
   type Lead,
 } from "../types/crm";
+import type { Agendamento } from "../types/agenda";
 
 interface LeadsListViewProps {
   leads: Lead[];
   interacoesByLead: Record<string, Interacao[]>;
+  nextMeetingByLead?: Record<string, Agendamento>;
   onSelectLead: (leadId: string) => void;
   onOpenNewLead: () => void;
 }
@@ -44,6 +46,7 @@ type SortOption =
 export function LeadsListView({
   leads,
   interacoesByLead,
+  nextMeetingByLead,
   onSelectLead,
   onOpenNewLead,
 }: LeadsListViewProps) {
@@ -382,6 +385,11 @@ export function LeadsListView({
                             {lead.empresa ? `${lead.empresa} · ` : ""}
                             {formatPhoneDisplay(lead.telefone)}
                           </div>
+                          {nextMeetingByLead?.[lead.id] && (
+                            <div className="text-[11px] font-medium text-[#EA580C] mt-0.5">
+                              Reunião {formatDateTimeSP(nextMeetingByLead[lead.id].inicio)}
+                            </div>
+                          )}
                         </td>
                         <td className="py-3 px-3 text-xs text-slate-700">
                           {lead.segmento || "—"}
@@ -466,6 +474,11 @@ export function LeadsListView({
                         {lead.segmento || "Sem segmento"} ·{" "}
                         {ETAPA_LABEL[lead.etapa]}
                       </p>
+                      {nextMeetingByLead?.[lead.id] && (
+                        <p className="text-[11px] font-medium text-[#EA580C] mt-0.5">
+                          Reunião {formatDateTimeSP(nextMeetingByLead[lead.id].inicio)}
+                        </p>
+                      )}
                     </div>
                     <span className="text-base">
                       {getSentimentEmoji(lead.sentimento)}

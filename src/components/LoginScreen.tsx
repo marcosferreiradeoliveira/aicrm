@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react";
 import { ArrowRight, Lock, Mail, MessageSquare } from "lucide-react";
 
 interface LoginScreenProps {
-  isSupabaseConfigured: boolean;
   onSignIn: (email: string, password: string) => Promise<{ error: string | null }>;
   onSignUp: (
     email: string,
@@ -12,7 +11,6 @@ interface LoginScreenProps {
 }
 
 export function LoginScreen({
-  isSupabaseConfigured,
   onSignIn,
   onSignUp,
   onEnterDemoMode,
@@ -96,7 +94,7 @@ export function LoginScreen({
             </div>
             <div>
               <p className="font-mono text-xl font-semibold text-white tabular-nums">
-                RLS
+                Auth
               </p>
               <p className="text-xs text-slate-400 mt-1">Acesso autenticado</p>
             </div>
@@ -118,14 +116,11 @@ export function LoginScreen({
                   : "Criar conta de acesso"}
               </h2>
               <p className="text-sm text-slate-600 mt-1">
-                {isSupabaseConfigured
-                  ? "Somente usuários autenticados visualizam e editam leads."
-                  : "Conecte o Supabase via variáveis de ambiente ou explore o ambiente de demonstração."}
+                Somente usuários autenticados visualizam e editam leads.
               </p>
             </div>
 
-            {isSupabaseConfigured ? (
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label
                     htmlFor="login-email"
@@ -212,37 +207,14 @@ export function LoginScreen({
                   </button>
                 </div>
               </form>
-            ) : (
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-700 space-y-2">
-                  <p className="font-medium text-[#10152A]">
-                    Variáveis do Supabase ainda não configuradas
-                  </p>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Para usar autenticação e banco reais, configure{" "}
-                    <code className="font-mono text-[#10152A]">
-                      VITE_SUPABASE_URL
-                    </code>{" "}
-                    e{" "}
-                    <code className="font-mono text-[#10152A]">
-                      VITE_SUPABASE_ANON_KEY
-                    </code>{" "}
-                    no ambiente e execute{" "}
-                    <code className="font-mono text-[#10152A]">schema.sql</code>{" "}
-                    no Supabase.
-                  </p>
-                </div>
 
-                <button
-                  type="button"
-                  onClick={onEnterDemoMode}
-                  className="w-full py-2.5 px-4 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Entrar no Modo Demonstração (8 Leads de Exemplo)</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
+              <button
+                type="button"
+                onClick={onEnterDemoMode}
+                className="mt-4 w-full py-2.5 px-4 rounded-lg border border-slate-300 text-sm font-medium text-[#10152A] hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Explorar com 8 leads de exemplo
+              </button>
           </div>
         </div>
       </main>

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { X } from "lucide-react";
-import type { CreateLeadInput } from "../hooks/useCrmStore";
+import type { CreateLeadInput } from "../types/crm";
 import {
   ETAPAS,
   ORIGEM_LABEL,

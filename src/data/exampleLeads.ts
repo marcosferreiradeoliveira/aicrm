@@ -13,8 +13,8 @@ export interface ExampleSeedData {
   interacoes: Interacao[];
 }
 
-export function buildExampleSeedData(): ExampleSeedData {
-  const leads: Lead[] = [
+export function buildExampleSeedData(empresaId = "demo"): ExampleSeedData {
+  const leads: Array<Omit<Lead, "empresa_id">> = [
     {
       id: "11111111-1111-4111-8111-111111111101",
       created_at: hoursAgo(2),
@@ -200,7 +200,7 @@ export function buildExampleSeedData(): ExampleSeedData {
     },
   ];
 
-  const interacoes: Interacao[] = [
+  const interacoes: Array<Omit<Interacao, "empresa_id">> = [
     {
       id: "22222222-2222-4222-8222-222222222101",
       lead_id: leads[0].id,
@@ -350,5 +350,8 @@ export function buildExampleSeedData(): ExampleSeedData {
     },
   ];
 
-  return { leads, interacoes };
+  return {
+    leads: leads.map((lead) => ({ ...lead, empresa_id: empresaId })),
+    interacoes: interacoes.map((item) => ({ ...item, empresa_id: empresaId })),
+  };
 }

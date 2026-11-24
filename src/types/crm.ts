@@ -1,6 +1,6 @@
 export type Urgencia = "baixa" | "media" | "alta";
 export type Sentimento = "positivo" | "neutro" | "negativo";
-export type Origem = "site" | "instagram" | "linkedin" | "indicacao" | "outro";
+export type Origem = "site" | "instagram" | "linkedin" | "indicacao" | "meta_ads" | "outro";
 export type Etapa =
   | "novo"
   | "qualificando"
@@ -16,8 +16,11 @@ export type TipoInteracao =
   | "ligacao"
   | "reuniao";
 
+export type Papel = "dono" | "membro";
+
 export interface Lead {
   id: string;
+  empresa_id: string;
   created_at: string;
   updated_at: string;
   nome: string;
@@ -40,10 +43,31 @@ export interface Lead {
 
 export interface Interacao {
   id: string;
+  empresa_id: string;
   lead_id: string;
   created_at: string;
   tipo: TipoInteracao;
   conteudo: string;
+}
+
+export interface CreateLeadInput {
+  nome: string;
+  telefone: string;
+  empresa?: string;
+  segmento?: string;
+  demanda?: string;
+  volume?: string;
+  urgencia: Urgencia;
+  sentimento: Sentimento;
+  nota: number;
+  origem: Origem;
+  etapa: Etapa;
+  resumo?: string;
+  handoff: boolean;
+  proximo_passo?: string;
+  data_proximo_passo?: string | null;
+  responsavel?: string;
+  mensagemInicial?: string;
 }
 
 export interface AiLeadSuggestion {
@@ -91,6 +115,7 @@ export const ORIGEM_LABEL: Record<Origem, string> = {
   instagram: "Instagram",
   linkedin: "LinkedIn",
   indicacao: "Indicação",
+  meta_ads: "Meta Ads",
   outro: "Outro",
 };
 
@@ -101,5 +126,3 @@ export const TIPO_INTERACAO_LABEL: Record<TipoInteracao, string> = {
   ligacao: "Ligação",
   reuniao: "Reunião",
 };
-
-export const CALENDLY_URL = "https://calendly.com/buildaidev/30min";

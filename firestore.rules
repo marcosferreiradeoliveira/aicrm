@@ -1,0 +1,272 @@
+rules_version = '2';
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Each signed-in user belongs to one company.
+// Lead phone numbers are customer data visible only inside that company.
+//
+// Collection: empresas
+// Fields:
+//   - nome: string (required, 1-120)
+//   - dono_uid: string (required, must equal the creator's uid, immutable)
+//   - created_at: timestamp (immutable)
+//
+// Collection: membros
+// Document ID: the user's auth uid
+// Fields:
+//   - empresa_id: string (required, 1-128, immutable)
+//   - papel: dono | membro
+//
+// Collection: leads
+// Fields: previous lead fields, plus
+//   - empresa_id: string (required, 1-128, immutable)
+//
+// Collection: interacoes
+// Fields: previous interaction fields, plus
+//   - empresa_id: string (required, 1-128, immutable)
+//
+// Collection: agenda_config
+// Document ID: empresa_id
+// Public booking fields only. No Google refresh token.
+// Members of that company can read. Clients cannot write.
+//
+// Collection: agendamentos
+// Fields: empresa_id, lead_id, inicio, fim, google_event_id,
+//   meet_link, status (confirmado | cancelado | remarcado)
+// Members of that company can read. Clients cannot write.
+//
+// Collections closed to all clients: agenda_segredos, agenda_slugs,
+// agenda_travas, rate_limits. Cloud Functions use the Admin SDK.
+//
+// Queries the app runs:
+//   leads where empresa_id == member empresa, orderBy updated_at desc
+//   leads where empresa_id == member empresa and telefone == string
+//   leads where empresa_id == member empresa
+//   interacoes where empresa_id == member empresa
+//   agendamentos where empresa_id == member empresa
+//     and status == confirmado and inicio >= now, orderBy inicio asc
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function memberPath() {
+      return /databases/$(database)/documents/membros/$(request.auth.uid);
+    }
+
+    function isMember() {
+      return isAuthenticated() && exists(memberPath());
+    }
+
+    function memberEmpresaId() {
+      return get(memberPath()).data.empresa_id;
+    }
+
+    function isPlausibleTimestamp(value) {
+      return value is timestamp
+        && value > request.time - duration.value(3650, 'd')
+        && value < request.time + duration.value(5, 'm');
+    }
+
+    function isScheduleTimestamp(value) {
+      return value is timestamp
+        && value > request.time - duration.value(3650, 'd')
+        && value < request.time + duration.value(3650, 'd');
+    }
+
+    function isOptionalText(value, maxLen) {
+      return value == null
+        || (value is string && value.size() <= maxLen);
+    }
+
+    function isLeadInstant(value) {
+      return isPlausibleTimestamp(value)
+        || (value is string
+          && value.size() >= 20
+          && value.size() <= 40
+          && value.matches('^\\d{4}-\\d{2}-\\d{2}T.+$'));
+    }
+
+    function isEmpresaId(value) {
+      return value is string && value.size() >= 1 && value.size() <= 128;
+    }
+
+    function hasExampleMark(data) {
+      return data.nome is string && data.nome.matches('.*\\[Exemplo\\].*');
+    }
+
+    function isExampleLeadDoc(leadId) {
+      return exists(/databases/$(database)/documents/leads/$(leadId))
+        && get(/databases/$(database)/documents/leads/$(leadId)).data.empresa_id == memberEmpresaId()
+        && hasExampleMark(get(/databases/$(database)/documents/leads/$(leadId)).data);
+    }
+
+    function isValidEmpresa(data) {
+      return data.keys().hasOnly(['nome', 'dono_uid', 'created_at'])
+        && data.nome is string
+        && data.nome.size() >= 1
+        && data.nome.size() <= 120
+        && data.dono_uid == request.auth.uid
+        && isPlausibleTimestamp(data.created_at);
+    }
+
+    function isValidMembro(data) {
+      return data.keys().hasOnly(['empresa_id', 'papel'])
+        && isEmpresaId(data.empresa_id)
+        && data.papel in ['dono', 'membro']
+        && exists(/databases/$(database)/documents/empresas/$(data.empresa_id))
+        && get(/databases/$(database)/documents/empresas/$(data.empresa_id)).data.dono_uid == request.auth.uid;
+    }
+
+    function isValidLead(data) {
+      return data.keys().hasOnly([
+          'empresa_id',
+          'nome',
+          'telefone',
+          'empresa',
+          'segmento',
+          'demanda',
+          'volume',
+          'urgencia',
+          'sentimento',
+          'nota',
+          'origem',
+          'etapa',
+          'resumo',
+          'handoff',
+          'proximo_passo',
+          'data_proximo_passo',
+          'responsavel',
+          'created_at',
+          'updated_at',
+          'email',
+          'meta_lead_id',
+          'fonte_importacao'
+        ])
+        && isEmpresaId(data.empresa_id)
+        && data.empresa_id == memberEmpresaId()
+        && data.nome is string
+        && data.nome.size() >= 1
+        && data.nome.size() <= 120
+        && data.telefone is string
+        && (data.telefone.size() == 0
+          || (data.telefone.size() >= 8 && data.telefone.size() <= 32))
+        && isOptionalText(data.empresa, 160)
+        && isOptionalText(data.segmento, 80)
+        && isOptionalText(data.demanda, 500)
+        && isOptionalText(data.volume, 80)
+        && isOptionalText(data.resumo, 2000)
+        && isOptionalText(data.proximo_passo, 300)
+        && isOptionalText(data.responsavel, 80)
+        && data.urgencia in ['baixa', 'media', 'alta']
+        && data.sentimento in ['positivo', 'neutro', 'negativo']
+        && data.nota is int
+        && data.nota >= 0
+        && data.nota <= 10
+        && data.origem in ['site', 'instagram', 'linkedin', 'indicacao', 'meta_ads', 'outro']
+        && (data.email == null || (data.email is string && data.email.size() <= 160))
+        && (data.meta_lead_id == null || (data.meta_lead_id is string && data.meta_lead_id.size() <= 80))
+        && (data.fonte_importacao == null || (data.fonte_importacao is string && data.fonte_importacao.size() <= 40))
+        && data.etapa in ['novo', 'qualificando', 'reuniao_agendada', 'proposta', 'ganho', 'perdido']
+        && data.handoff is bool
+        && (data.data_proximo_passo == null || isScheduleTimestamp(data.data_proximo_passo))
+        && isLeadInstant(data.created_at)
+        && isLeadInstant(data.updated_at);
+    }
+
+    function isValidInteracao(data) {
+      return data.keys().hasOnly(['empresa_id', 'lead_id', 'tipo', 'conteudo', 'created_at'])
+        && isEmpresaId(data.empresa_id)
+        && data.empresa_id == memberEmpresaId()
+        && data.lead_id is string
+        && data.lead_id.size() >= 1
+        && data.lead_id.size() <= 128
+        && exists(/databases/$(database)/documents/leads/$(data.lead_id))
+        && get(/databases/$(database)/documents/leads/$(data.lead_id)).data.empresa_id == data.empresa_id
+        && data.tipo in ['whatsapp_entrada', 'whatsapp_saida', 'nota', 'ligacao', 'reuniao']
+        && data.conteudo is string
+        && data.conteudo.size() >= 1
+        && data.conteudo.size() <= 4000
+        && isPlausibleTimestamp(data.created_at);
+    }
+
+    match /empresas/{empresaId} {
+      allow read: if isAuthenticated() && (
+        resource.data.dono_uid == request.auth.uid
+        || (isMember() && memberEmpresaId() == empresaId)
+      );
+      allow create: if isAuthenticated()
+        && isValidEmpresa(request.resource.data)
+        && !exists(memberPath());
+      allow update, delete: if false;
+    }
+
+    match /membros/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isAuthenticated()
+        && isValidMembro(request.resource.data)
+        && (
+          (request.auth.uid == userId && request.resource.data.papel == 'dono')
+          || (request.auth.uid != userId && request.resource.data.papel == 'membro')
+        );
+      allow update, delete: if false;
+    }
+
+    match /leads/{leadId} {
+      allow read: if isMember() && resource.data.empresa_id == memberEmpresaId();
+      allow create: if isMember() && isValidLead(request.resource.data);
+      allow update: if isMember()
+        && isValidLead(request.resource.data)
+        && request.resource.data.created_at == resource.data.created_at
+        && request.resource.data.empresa_id == resource.data.empresa_id
+        && hasExampleMark(request.resource.data) == hasExampleMark(resource.data);
+      allow delete: if isMember()
+        && resource.data.empresa_id == memberEmpresaId()
+        && hasExampleMark(resource.data);
+    }
+
+    match /interacoes/{interacaoId} {
+      allow read: if isMember() && resource.data.empresa_id == memberEmpresaId();
+      allow create: if isMember() && isValidInteracao(request.resource.data);
+      allow update: if false;
+      allow delete: if isMember()
+        && resource.data.empresa_id == memberEmpresaId()
+        && isExampleLeadDoc(resource.data.lead_id);
+    }
+
+    match /agenda_config/{empresaId} {
+      allow read: if isMember() && memberEmpresaId() == empresaId;
+      allow write: if false;
+    }
+
+    match /agendamentos/{agendamentoId} {
+      allow read: if isMember() && resource.data.empresa_id == memberEmpresaId();
+      allow write: if false;
+    }
+
+    match /agenda_segredos/{empresaId} {
+      allow read, write: if false;
+    }
+
+    match /agenda_slugs/{slug} {
+      allow read, write: if false;
+    }
+
+    match /agenda_travas/{travaId} {
+      allow read, write: if false;
+    }
+
+    match /rate_limits/{limitId} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -28,7 +28,6 @@ import {
   isHotLeadStale24h,
 } from "../lib/leadHelpers";
 import {
-  CALENDLY_URL,
   ETAPAS,
   ORIGEM_LABEL,
   SENTIMENTO_LABEL,
@@ -47,6 +46,10 @@ import {
 interface LeadDetailViewProps {
   lead: Lead;
   interacoes: Interacao[];
+  bookingUrl: string | null;
+  nextMeetingLabel: string | null;
+  nextMeetingLink: string | null;
+  onConfigureAgenda: () => void;
   onBack: () => void;
   onSaveLead: (leadId: string, patch: Partial<Lead>) => Promise<string | null>;
   onAddInteracao: (
@@ -59,6 +62,10 @@ interface LeadDetailViewProps {
 export function LeadDetailView({
   lead,
   interacoes,
+  bookingUrl,
+  nextMeetingLabel,
+  nextMeetingLink,
+  onConfigureAgenda,
   onBack,
   onSaveLead,
   onAddInteracao,
@@ -284,6 +291,20 @@ export function LeadDetailView({
                 {formatRelativeTimeSP(lastContact)} (
                 {formatDateTimeSP(lastContact)})
               </p>
+              {nextMeetingLabel && (
+                <p className="text-xs font-medium text-[#EA580C] mt-1">
+                  Próxima reunião: {nextMeetingLabel}
+                  {nextMeetingLink ? (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <a href={nextMeetingLink} target="_blank" rel="noopener noreferrer" className="underline">
+                        Meet
+                      </a>
+                    </>
+                  ) : null}
+                </p>
+              )}
             </div>
           </div>
 
@@ -298,16 +319,27 @@ export function LeadDetailView({
               <span>{aiLoading ? "Analisando..." : "Analisar com IA"}</span>
             </button>
 
-            <a
-              href={CALENDLY_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[#10152A] text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap transition-colors"
-            >
-              <Calendar className="w-4 h-4 text-[#F97316]" />
-              <span>Agendar</span>
-              <ExternalLink className="w-3 h-3 text-slate-400" />
-            </a>
+            {bookingUrl ? (
+              <a
+                href={bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[#10152A] text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap transition-colors"
+              >
+                <Calendar className="w-4 h-4 text-[#F97316]" />
+                <span>Agendar</span>
+                <ExternalLink className="w-3 h-3 text-slate-400" />
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={onConfigureAgenda}
+                className="px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[#10152A] text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer"
+              >
+                <Calendar className="w-4 h-4 text-[#F97316]" />
+                <span>Configurar agenda</span>
+              </button>
+            )}
 
             <a
               href={formatWhatsAppUrl(lead.telefone)}

@@ -1,4 +1,7 @@
 node_modules/
+functions/lib/
+.firebase/
+.n8n-edit/
 build/
 dist/
 coverage/

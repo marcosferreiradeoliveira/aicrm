@@ -10,6 +10,11 @@ import {
 import { formatDateTimeSP } from "./date";
 
 const HOURS_24_MS = 24 * 60 * 60 * 1000;
+const EXAMPLE_MARK = "[Exemplo]";
+
+export function isExampleLead(lead: Pick<Lead, "nome">): boolean {
+  return lead.nome.includes(EXAMPLE_MARK);
+}
 
 export function getLastContactAt(lead: Lead, interacoes: Interacao[]): string {
   if (interacoes.length === 0) {

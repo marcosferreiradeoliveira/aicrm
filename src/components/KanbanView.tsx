@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle, Clock, UserCheck } from "lucide-react";
-import { formatRelativeTimeSP } from "../lib/date";
+import { formatDateTimeSP, formatRelativeTimeSP } from "../lib/date";
+import type { Agendamento } from "../types/agenda";
 import {
   getLastContactAt,
   getScoreTone,
@@ -19,6 +20,7 @@ import {
 interface KanbanViewProps {
   leads: Lead[];
   interacoesByLead: Record<string, Interacao[]>;
+  nextMeetingByLead?: Record<string, Agendamento>;
   onMoveStage: (leadId: string, etapa: Etapa) => Promise<string | null>;
   onSelectLead: (leadId: string) => void;
 }
@@ -26,6 +28,7 @@ interface KanbanViewProps {
 export function KanbanView({
   leads,
   interacoesByLead,
+  nextMeetingByLead,
   onMoveStage,
   onSelectLead,
 }: KanbanViewProps) {
@@ -42,7 +45,7 @@ export function KanbanView({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-[#10152A] tracking-tight">
@@ -70,7 +73,7 @@ export function KanbanView({
         </div>
       </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-4 items-start">
+      <div className="flex gap-4 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-3 items-stretch h-[calc(100dvh-15rem)] md:h-[calc(100dvh-12.5rem)] min-h-[28rem]">
         {ETAPAS.map((col) => {
           const colLeads = leads.filter((l) => l.etapa === col.id);
           const isOver = dragOverStage === col.id;
@@ -89,13 +92,13 @@ export function KanbanView({
                 e.preventDefault();
                 void handleDrop(col.id);
               }}
-              className={`w-[290px] sm:w-[300px] shrink-0 rounded-xl border transition-colors ${
+              className={`w-[290px] sm:w-[300px] shrink-0 h-full min-h-0 flex flex-col rounded-xl border transition-colors ${
                 isOver
                   ? "bg-orange-50/60 border-[#F97316]"
                   : "bg-slate-100/80 border-slate-200"
               }`}
             >
-              <div className="px-3.5 py-3 border-b border-slate-200/80 flex items-center justify-between">
+              <div className="shrink-0 px-3.5 py-3 border-b border-slate-200/80 flex items-center justify-between">
                 <h2 className="font-display text-sm font-semibold text-[#10152A]">
                   {col.label}
                 </h2>
@@ -104,7 +107,7 @@ export function KanbanView({
                 </span>
               </div>
 
-              <div className="p-2.5 space-y-2.5 min-h-[260px]">
+              <div className="p-2.5 space-y-2.5 flex-1 min-h-0 overflow-y-auto">
                 {colLeads.length === 0 ? (
                   <div className="py-10 px-3 text-center text-xs text-slate-400">
                     Nenhum lead nesta etapa
@@ -145,6 +148,11 @@ export function KanbanView({
                             <p className="text-xs text-slate-500 truncate mt-0.5">
                               {lead.segmento || "Segmento não informado"}
                             </p>
+                            {nextMeetingByLead?.[lead.id] && (
+                              <p className="text-[11px] font-medium text-[#EA580C] mt-1">
+                                Reunião {formatDateTimeSP(nextMeetingByLead[lead.id].inicio)}
+                              </p>
+                            )}
                           </div>
 
                           <span

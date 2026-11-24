@@ -1,6 +1,6 @@
 {
   "name": "BuildAI Leads",
-  "description": "Mini CRM web da BuildAI para acompanhamento de leads recebidos pelo atendente de IA no WhatsApp, com funil Kanban, análise com Gemini e integração Supabase.",
+  "description": "Mini CRM web da BuildAI para acompanhamento de leads recebidos pelo atendente de IA no WhatsApp, com funil Kanban, análise com Gemini e Firebase.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

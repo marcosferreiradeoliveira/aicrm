@@ -36,6 +36,19 @@ export function formatDateTimeSP(iso: string | null | undefined): string {
   return dateTimeFormatter.format(date);
 }
 
+const timeFormatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: SAO_PAULO_TZ,
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+export function formatTimeSP(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return timeFormatter.format(date);
+}
+
 export function formatDateSP(iso: string | null | undefined): string {
   if (!iso) return "—";
   const date = new Date(iso);
